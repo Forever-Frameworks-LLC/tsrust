@@ -685,8 +685,7 @@ impl<'p> Emitter<'p> {
                 let mut values = rendered.by_ref().collect::<Vec<_>>();
                 values.extend(self.named_capture_arguments(fun, index, expr));
                 values.extend(self.owner_call_arguments(fun, index, &expr.kind));
-                let arguments = values.join(", ");
-                let call = format!("{native_name}({arguments})");
+                let call = self.fault_caught_call(&native_name, values, index, expr.span);
                 let code = if let Some((_, source_name)) = result_target {
                     let unions = crate::unions::UnionArena::from_snapshot_with_records(
                         self.program.unions.clone(),

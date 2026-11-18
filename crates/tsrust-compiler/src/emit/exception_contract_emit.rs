@@ -29,10 +29,12 @@ pub(crate) fn checked_throw_value(value:&str,ty:crate::syntax::Type,error_name:&
     let source=crate::error_effects::FailureSet{explicit:vec![ty],..Default::default()};
     let mapping=source.native_injection(destination,unions,runtime,span)?;
     if let crate::syntax::Type::Union(id)=ty {
-        let arms=mapping.iter().enumerate().map(|(index,target)|format!("Union{}::V{index}(payload)=>{error_name}::V{target}(payload)",id.index())).collect::<Vec<_>>().join(",");
+        // A runtime error thrown where the contract no longer carries runtime errors is raised as a fault.
+        let arms=mapping.iter().enumerate().map(|(index,target)|if *target==crate::error_effects::RAISE_FAULT {format!("Union{}::V{index}(payload)=>tsr_raise_runtime_record(payload)",id.index())} else {format!("Union{}::V{index}(payload)=>{error_name}::V{target}(payload)",id.index())}).collect::<Vec<_>>().join(",");
         Ok(format!("match {value} {{ {arms} }}"))
     }else{
         let target=mapping.first().expect("checked throw payload");
+        if *target==crate::error_effects::RAISE_FAULT {return Ok(format!("tsr_raise_runtime_record({value})"));}
         Ok(format!("{error_name}::V{target}({value})"))
     }
 }

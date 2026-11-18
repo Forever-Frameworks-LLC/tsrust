@@ -1311,12 +1311,18 @@ impl Emitter<'_> {
     /// Assertion diagnostics own their message text; user values remain borrowed.
     #[inline(never)]
     fn typed_native_assertion(&self,arguments:&[String],span:crate::Span,closure:Option<usize>)->Option<String> {
-        let (name,contract,runtime)=if let Some(id)=closure {
+        let transport=if let Some(id)=closure {
             let name=self.result_closures.borrow().get(&id).cloned()?;
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            (name,self.program.error_effects.closure_errors[id].clone(),runtime)
-        }else{self.exception_regions.current_transport()?};
-        if !contract.runtime {return None;}
+            Some((name,self.program.error_effects.closure_errors[id].clone(),runtime))
+        }else{self.exception_regions.current_transport()};
+        // Where no region receives runtime errors, a failed assertion is a fault
+        // (docs/plans/fault-unwinding.md) instead of the native panicking check.
+        let Some((name,contract,runtime))=transport.filter(|(_,contract,_)|contract.runtime) else {
+            if !crate::error_effects::unwind_faults() || closure.is_some() {return None;}
+            let (source,start,end)=self.fault_location(span);
+            return Some(format!("{{let assertion_condition={};let assertion_message={};if !assertion_condition{{let (source,start,end)=tsrust_testing_assertion_site().map_or(({source:?},{start}_i64,{end}_i64),|site|(site.source,site.start as i64,site.end as i64));tsr_raise_fault_parts(std::borrow::Cow::Borrowed(\"AssertionError\"),std::borrow::Cow::Borrowed(\"assertion\"),std::borrow::Cow::Owned(assertion_message.as_ref().to_owned()),std::borrow::Cow::Borrowed(source),start,end)}}}}",arguments[0],arguments[1]));
+        };
         let Some(Type::Record(record))=runtime else{return None;};
         let error=self.runtime_error_value(record,"AssertionError","assertion","",span);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -1342,11 +1348,17 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn typed_native_result(&self,call:&str,span:crate::Span,closure:Option<usize>,error_name:&str,error_code:&str)->Option<String> {
-        let (name,contract,runtime)=if let Some(id)=closure {
+        let transport=if let Some(id)=closure {
             let name=self.result_closures.borrow().get(&id).cloned()?;
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
-            (name,self.program.error_effects.closure_errors[id].clone(),runtime)
-        }else{self.exception_regions.current_transport()?};
+            Some((name,self.program.error_effects.closure_errors[id].clone(),runtime))
+        }else{self.exception_regions.current_transport()};
+        // Without a region, a runner failure is raised as a fault (docs/plans/fault-unwinding.md).
+        let Some((name,contract,runtime))=transport else {
+            if !crate::error_effects::unwind_faults() {return None;}
+            let (source,start,end)=self.fault_location(span);
+            return Some(format!("match {call}{{Ok(value)=>value,Err(message)=>tsr_raise_fault_parts(std::borrow::Cow::Borrowed({error_name:?}),std::borrow::Cow::Borrowed({error_code:?}),std::borrow::Cow::Owned(message),std::borrow::Cow::Borrowed({source:?}),{start}_i64,{end}_i64)}}"));
+        };
         let Some(Type::Record(record))=runtime else{return None;};
         let value=self.runtime_error_value(record,error_name,error_code,"",span);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
@@ -1424,6 +1436,30 @@ impl Emitter<'_> {
         exception_emit::runtime_error_value_with_order(record,self.record_runtime.ordered.contains(&record),name,code,message,source,start,end)
     }
 
+    /// A direct call. When the callee may unwind a fault and the active region
+    /// receives runtime errors (a try region), only the call runs inside a
+    /// fault catch: arguments are evaluated first, outside it, because they may
+    /// leave the region. The fault becomes the same throw a local fault makes
+    /// (docs/plans/fault-unwinding.md, decision 2).
+    fn fault_caught_call(&self,native_name:&str,values:Vec<String>,index:usize,span:crate::Span)->String {
+        let unwinds=self.fault_effects.as_ref().is_some_and(|effects|self.program.error_effects.function_errors.get(index).is_some_and(|contract|contract.runtime) && !effects.function_errors[index].runtime);
+        let throw=unwinds.then(||self.fault_throw(span)).flatten();
+        let Some(throw)=throw else {return format!("{native_name}({})",values.join(", "));};
+        let bindings=values.iter().enumerate().map(|(position,value)|format!("let fault_argument{position}={value};")).collect::<String>();
+        let arguments=(0..values.len()).map(|position|format!("fault_argument{position}")).collect::<Vec<_>>().join(", ");
+        format!("{{ {bindings} match tsr_catch_faults(|| {native_name}({arguments})) {{ Ok(value)=>value, Err(fault)=>{{ {throw} }} }} }}")
+    }
+
+    /// Throw a caught `fault` into the active region when it receives runtime errors.
+    fn fault_throw(&self,span:crate::Span)->Option<String> {
+        let (_, contract, runtime) = self.exception_regions.current_transport()?;
+        let (true, Some(Type::Record(record))) = (contract.runtime, runtime) else {return None;};
+        let order=if self.record_runtime.ordered.contains(&record) {", key_order: [0,1,2,3,4,5]"} else {""};
+        let value=format!("Record{record} {{ field0: fault.name, field1: fault.code, field2: fault.message, field3: fault.source, field4: fault.start, field5: fault.end{order} }}");
+        let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+        Some(self.exception_regions.throw_value(&value, Type::Record(record), &unions, span).expect("checked runtime fault transport"))
+    }
+
     /// Function contracts as emitted: without runtime errors where faults unwind.
     fn function_effects(&self)->&crate::error_effects::ErrorEffects {self.fault_effects.as_ref().unwrap_or(&self.program.error_effects)}
 
@@ -1438,10 +1474,15 @@ impl Emitter<'_> {
             return Some(format!("{{ {} }}", self.exception_regions.throw_value(&failure, Type::Record(record), &unions, span).expect("checked runtime failure transport")));
         }
         crate::error_effects::unwind_faults().then(|| {
-            let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
-            let (source,start,end)=location.map_or(("<source>",span.start,span.end),|(source,base,_)|(source.0.as_str(),span.start-base,span.end-base));
+            let (source,start,end)=self.fault_location(span);
             format!("tsr_raise_fault({name:?},{code:?},{message:?},{source:?},{start}_i64,{end}_i64)")
         })
+    }
+
+    /// The source file and file-relative offsets of `span`.
+    fn fault_location(&self,span:crate::Span)->(&str,usize,usize) {
+        let location=self.source_segments.iter().find(|(_,base,len)|span.start>=*base && span.end>=span.start && span.end<=base+len);
+        location.map_or(("<source>",span.start,span.end),|(source,base,_)|(source.0.as_str(),span.start-base,span.end-base))
     }
 
     #[inline(never)]

@@ -3,11 +3,12 @@
 // details wait in a thread-local; the panic payload is only a marker, so any
 // data can be carried and nothing about the details has to be `Send`.
 struct TsrFault;
+type TsrFaultText = std::borrow::Cow<'static, str>;
 struct TsrFaultInfo {
-    name: String,
-    code: String,
-    message: String,
-    source: String,
+    name: TsrFaultText,
+    code: TsrFaultText,
+    message: TsrFaultText,
+    source: TsrFaultText,
     start: i64,
     end: i64,
 }
@@ -45,7 +46,7 @@ fn tsr_install_fault_hook() {
 }
 #[cold]
 #[inline(never)]
-fn tsr_raise_fault_parts(name: String, code: String, message: String, source: String, start: i64, end: i64) -> ! {
+fn tsr_raise_fault_parts(name: TsrFaultText, code: TsrFaultText, message: TsrFaultText, source: TsrFaultText, start: i64, end: i64) -> ! {
     tsr_install_fault_hook();
     TSR_FAULT.with(|slot| *slot.borrow_mut() = Some(TsrFaultInfo { name, code, message, source, start, end }));
     std::panic::panic_any(TsrFault)
@@ -53,7 +54,7 @@ fn tsr_raise_fault_parts(name: String, code: String, message: String, source: St
 #[cold]
 #[inline(never)]
 fn tsr_raise_fault(name: &'static str, code: &'static str, message: &'static str, source: &'static str, start: i64, end: i64) -> ! {
-    tsr_raise_fault_parts(String::Borrowed(name), String::Borrowed(code), String::Borrowed(message), String::Borrowed(source), start, end)
+    tsr_raise_fault_parts(TsrFaultText::Borrowed(name), TsrFaultText::Borrowed(code), TsrFaultText::Borrowed(message), TsrFaultText::Borrowed(source), start, end)
 }
 /// Run `body`; a fault it raises comes back as its details. Other panics continue.
 fn tsr_catch_faults<R>(body: impl FnOnce() -> R) -> Result<R, TsrFaultInfo> {
