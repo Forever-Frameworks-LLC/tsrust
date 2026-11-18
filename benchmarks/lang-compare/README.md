@@ -145,10 +145,35 @@ Shared changes first, then the orders phase:
 Most of what remains in orders is the comparator itself: it can throw (the
 `left.id - right.id` overflow check), so each comparison returns a `Result`.
 
+## Per-call Result cost (investigated 2026-11-17)
+
+Reproductions of `fib(32)` in Rust, best of 7 runs:
+
+| Shape | Time |
+|---|---:|
+| Plain Rust, overflow panics | 6.6 ms |
+| Tsrust's generated function, copied verbatim | 9.3 ms |
+| The same with `return Ok`/`return Err` instead of completion blocks | 9.3 ms |
+| Hand-written `Result<i64, error record>` | 7.7 to 9.3 ms (varies with code layout) |
+| Error record built in a `#[cold]` function | 8.4 ms |
+| `Result<i64, marker>` with the record in a thread-local | 10.4 ms |
+
+LLVM already removes the completion plumbing, and the error record's size or
+placement does not matter. The cost is returning and checking a `Result` on
+every call. Range analysis would not remove it here: `fib`'s addition,
+`check`'s `1 + check(left) + check(right)` and the orders comparator's
+`left.id - right.id` can all overflow. Matching plain Rust would need thrown
+errors to unwind (panic with the error as payload, caught at `try`/`catch`
+and at the program boundary) instead of travelling in `Result`. That changes
+the exception model: unwinding has no cost until something throws, but it
+needs a silent panic hook, `catch_unwind` at every catch site and every
+thread or async boundary, and a target that supports unwinding.
+
 ## Possible fixes, by expected gain
 
 1. Done: see the two rounds above.
 2. A sized array constructor (`new Array<T>(n).fill(x)` or `Array.from`
    with a length), and a hoisted slice for index loops over one array
    (sieve, matrix, nbody).
-4. No-throw analysis for small pure functions such as `fib` (calls).
+4. Unwinding thrown errors instead of returning `Result` (calls, comparators,
+   recursive builders); see the investigation above.

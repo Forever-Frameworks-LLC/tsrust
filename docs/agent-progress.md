@@ -61,6 +61,13 @@ words 1.9x, sets 1.9x, orders 1.4x, process 2.68 s vs 1.94 s, RSS 368 MiB.
 Passed: 39 sort/copy/exception/collection suites, 80 array/record/generic/
 callback/ui suites, receiver_moves 8.
 
+Per-call Result cost: reproductions (README "Per-call Result cost") show the
+completion lowering already optimizes to plain `Result` code and error-record
+size/placement is irrelevant; the remaining 1.2 to 1.4x is the `Result` itself.
+Only unwinding thrown errors would remove it (owner decision pending: exception
+model change, silent hook, catch_unwind at catch/thread/async boundaries,
+unwind-capable targets). No compiler change made for this item.
+
 ## Rust/GPUI vs Tsrust comparison app — 2026-11-17
 
 `benchmarks/gpui-compare/` holds one app written with GPUI Kit directly and with
