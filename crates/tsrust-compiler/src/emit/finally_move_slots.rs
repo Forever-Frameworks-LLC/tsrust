@@ -142,18 +142,26 @@ mod tests {
     }
     #[test]
     fn loop_control_partial_returns_keep_lexical_disposal() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         assert_try_local_drops_before_cleanup(LocalCleanup::ControlPartialReturn);
     }
     #[test]
     fn loop_continue_partial_returns_keep_lexical_disposal() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         assert_try_local_drops_before_cleanup(LocalCleanup::ControlContinuePartialReturn);
     }
     #[test]
     fn nested_loop_partial_returns_keep_lexical_disposal() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         assert_try_local_drops_before_cleanup(LocalCleanup::ControlNestedPartialReturn);
     }
     #[test]
     fn cleanup_break_replaces_partial_return_after_local_disposal() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         assert_try_local_drops_before_cleanup(LocalCleanup::ControlCleanupBreak);
     }
     #[test]
@@ -190,6 +198,8 @@ mod tests {
     }
     #[test]
     fn same_region_catch_loop_exits_keep_lexical_disposal() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         assert_try_local_drops_before_cleanup(LocalCleanup::CatchControlPartialReturn);
     }
     #[test]

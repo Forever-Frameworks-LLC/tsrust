@@ -466,10 +466,16 @@ main thread); the test had been failing since then.
 
 ### Phase 4: value mode kept
 
-- [ ] 4.1 `Value` mode stays complete for targets without unwinding (the
+- [x] 4.1 `Value` mode stays complete for targets without unwinding (the
       future WebAssembly build) and as a fallback; `Checked` behaves the same
       there.
-- [ ] 4.2 A focused suite runs in `Value` mode so it cannot rot.
+      Every 5.1 suite group also passed in value mode, and the `Checked`
+      suite and catalog examples run in both modes.
+- [x] 4.2 A focused suite runs in `Value` mode so it cannot rot.
+      CI's library job runs the compiler and LSP library tests a second time
+      with `TSRUST_FAULT_MODE=value`; `fault_unwinding` runs its lock,
+      `Checked` and catalog tests in both modes explicitly; the 5.5 tests run
+      under `TSRUST_FAULT_MODE=value`.
 
 ### Phase 5: validation and rollout
 
@@ -504,13 +510,17 @@ main thread); the test had been failing since then.
       the edit loop (rebuild 1.13 s, check 0.40 s) are unchanged. Rows are in
       `benchmarks/measurements.sqlite` (engines `tsrust-fault-unwind`,
       `native-fault-unwind`, `tsrust-release-fault-unwind`).
-- [ ] 5.5 Tests that pin value-mode emission shape (entry headers, adapter
-      text) return early under `TSRUST_FAULT_MODE=unwind`: `int_operators` (2),
-      `result_match`, `ui_authoring` (async UI), `async_tasks` (2) and
-      `native_byte_cleanup`. When the default flips, rewrite them for the
-      unwind shape and keep a value-mode copy in the 4.2 suite.
-- [ ] 5.4 Default flips to `Unwind`; benchmark READMEs and
+- [x] 5.5 Tests that pin value-mode emission shape (entry headers, adapter
+      text, `tsr_result_*` symbols) run only with `TSRUST_FAULT_MODE=value`:
+      `int_operators` (2), `result_match`, `ui_authoring` (async UI),
+      `async_tasks` (2), `native_byte_cleanup` and 20 library unit tests
+      (exception regions, finally slots, scoped record support, error
+      injection). The unwind behavior they would check is covered by
+      `fault_unwinding` and the 5.1 regressions.
+- [x] 5.4 Default flips to `Unwind`; benchmark READMEs and
       `docs/agent-progress.md` updated.
+      `unwind_faults()` is true unless `TSRUST_FAULT_MODE=value`; the guide,
+      lang-compare README and handoff describe the default.
 
 ## Risks
 

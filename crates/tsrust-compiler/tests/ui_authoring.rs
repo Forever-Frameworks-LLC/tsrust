@@ -164,9 +164,9 @@ fn localized_tooltips_and_placeholders_accept_live_text_only() {
 
 #[test]
 fn asynchronous_native_ui_keeps_the_process_main_thread() {
-    // Inspects value-mode entry text; adapted when unwinding faults become the
-    // default (docs/plans/fault-unwinding.md, 5.5).
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") { return; }
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
     let directory=tempfile::tempdir().unwrap();
     let path=directory.path().join("main.tsrx");
     std::fs::write(&path,"import {View,run} from 'std:ui';import {delay} from 'std:futures';async function main():Task<void>{await delay(0);unwrap(run(<View/>, 'Async UI'));}").unwrap();

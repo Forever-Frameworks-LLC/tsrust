@@ -46,8 +46,9 @@ fn unused_task_warnings_follow_reachable_paths_and_transfers() {
 
 #[test]
 fn async_entrypoints_run_on_an_explicit_main_thread_stack() {
-    // Value-mode emission shape; unwind mode renames the entry (plan item 5.5).
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") { return; }
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
 
     for (source, header) in [
         ("async function value():Task<int>{return 4;}async function main():Task<void>{console.log(await value());}", "fn tsrust_entry_main() -> () {"),
@@ -64,8 +65,9 @@ fn async_entrypoints_run_on_an_explicit_main_thread_stack() {
 
 #[test]
 fn generated_future_retains_allocation_and_drops_once_across_real_suspension() {
-    // Value-mode emission shape; unwind mode renames the entry (plan item 5.5).
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") { return; }
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
 
     let source=support::format_round_trip("async function hold(text:string):Task<string>{return text;}function main(){}");
     let mut rust=check(&source).unwrap().emit_rust();

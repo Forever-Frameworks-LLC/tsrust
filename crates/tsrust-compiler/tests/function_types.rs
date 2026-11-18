@@ -29,7 +29,7 @@ fn without_offsets(rust: &str) -> String {
     }
     output.push_str(rest);
     // Unwinding fault sites also carry line and column numbers.
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") {
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") {
         output.retain(|c| !c.is_ascii_digit());
     }
     output

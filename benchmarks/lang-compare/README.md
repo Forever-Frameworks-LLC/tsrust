@@ -175,5 +175,22 @@ thread or async boundary, and a target that supports unwinding.
 2. A sized array constructor (`new Array<T>(n).fill(x)` or `Array.from`
    with a length), and a hoisted slice for index loops over one array
    (sieve, matrix, nbody).
-4. Unwinding thrown errors instead of returning `Result` (calls, comparators,
-   recursive builders); see the investigation above.
+4. Done (2026-11-18): runtime faults unwind instead of returning `Result`
+   (calls, comparators, recursive builders); see "Fault unwinding" below.
+
+## Fault unwinding (2026-11-18)
+
+Runtime faults now unwind instead of travelling in every caller's `Result`
+(`docs/plans/fault-unwinding.md`); explicit errors stay values. Release
+medians of 5, value mode (`TSRUST_FAULT_MODE=value`) against the new default:
+
+| Phase | Value mode | Unwind (default) | Rust |
+|---|---:|---:|---:|
+| fib | 9.8 ms (1.42x) | 7.1 ms (1.04x) | 6.9 ms |
+| orders | 209.5 ms (1.39x) | 187.9 ms (1.26x) | 150.4 ms |
+| whole process | 2.58 s | 2.53 s | 1.87 s |
+
+The other phases are unchanged within noise. The sorted comparator and the
+recursive calls no longer return a `Result`; what remains in orders is the
+copy and permutation work described above.
+

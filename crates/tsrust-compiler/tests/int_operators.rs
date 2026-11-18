@@ -152,9 +152,9 @@ fn int_contexts_anchors_precedence_and_nested_number_rejections_are_explicit() {
 
 #[test]
 fn strict_targets_loans_and_single_operand_selection_survive_failed_commits() {
-    // Inspects value-mode fault ABI from Rust (panic text, Result entry); adapted
-    // when unwinding faults become the default (docs/plans/fault-unwinding.md, 5.5).
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") { return; }
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
 
     let analysis = native(
         r#"
@@ -231,9 +231,9 @@ fn strict_targets_loans_and_single_operand_selection_survive_failed_commits() {
 
 #[test]
 fn wide_edges_checked_traps_zero_allocation_and_owned_disposal_are_native() {
-    // Inspects value-mode fault ABI from Rust (panic text, Result entry); adapted
-    // when unwinding faults become the default (docs/plans/fault-unwinding.md, 5.5).
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") { return; }
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
 
     let mut program = source();
     program += "type Box={n:int;text:string;};function owned(box:Box,power:int){box.n**=power;}function main(){}";

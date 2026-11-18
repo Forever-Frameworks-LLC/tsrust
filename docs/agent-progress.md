@@ -7,6 +7,43 @@ application platform plan with heavy priority on compilation time, keep the
 gallery, Studio and Tasks apps together under apps/, and complete the UI input
 and accessibility-aware sizing gaps. Branch codex/gpui-platform from main.
 
+## Fault unwinding and `Checked<T, E>` — 2026-11-18
+
+All five phases of `docs/plans/fault-unwinding.md` are done; see its
+checklist for details and evidence. Runtime faults (overflow, bounds,
+assertions, length limits) now unwind by default and are caught per call
+inside `try`, at `Checked` functions and at every boundary (threads, tasks, UI
+callbacks, HTTP handlers, test bodies). `throw`, `Result` and `unwrap` stay
+values. `TSRUST_FAULT_MODE=value` selects the previous value mode, kept as the
+fallback for targets without unwinding; CI runs the library tests in both
+modes, and value-ABI tests return early unless that variable is `value`.
+
+- Reports: `Uncaught RangeError: <message>` then `    at file:line:column`,
+  exit 1, for every entry shape; `RUST_BACKTRACE=1` adds a native backtrace;
+  detached threads print `in a detached thread` (exit unchanged). The runtime
+  error record has `line` and `column`.
+- `Checked<T>` / `Checked<T, E>` / `Task<Checked<...>>` lower on tokens before
+  parsing (`syntax/checked_lowering.rs`) to a `try` body returning
+  `Result<T, RuntimeError | E>`. `RuntimeError` is a public type name for the
+  fault record. IntelliSense, guide section and a `std:testing` suite
+  (`tests/fixtures/checked/checked.test.tsr`, both modes) are in place.
+- Speed: lang-compare fib 1.42x to 1.04x of Rust, orders 1.39x to 1.26x; other
+  phases, gpui-compare and the edit loop unchanged (rows in SQLite).
+- Known limitation (pre-existing): a `try` around a call of a callback
+  parameter needs that callback's error contract resolved.
+
+Pre-existing failures found by the full unwind regression and confirmed
+identical at 5baf487fe (before this work), not fixed here: `acceptance`
+(cli_profiles expects 13 rustc arguments, gets 17; closed stdout),
+`dev_aliases`, `dev_cancellation`, `http_client_uploads` and `http_context`
+(crate split E0117 on `impl TsrJoinText for RecordN` where the record aliases
+a native type), `native_byte_cleanup`, `native_cache` warm rebuild count,
+`network_transport`, `path_env_os` and `structured_logging` (registered suite
+import order), `project_commands`, `shared_sources`, `std_bytes` (fixture
+variants). `native_dependency_bundle` and the offline export test need
+`CARGO_TARGET_DIR`. The `async_channel_*` runtime workloads fail on the Node
+side (Node cannot run the `.ts` comparison).
+
 ## UI update cost and the Rust vs Tsrust CPU comparison — 2026-11-17
 
 GPUI comparison fixes (`stdlib/ui/gpui.rs`, `tsrust-ui`): `StyleMemo` shares

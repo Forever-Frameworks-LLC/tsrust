@@ -7,8 +7,9 @@ fn owned_bytes_release_exactly_once_and_restore_allocations_at_o0_o3() {
     let emitted = support::run(support::cli().arg("emit").arg(path), 60);
     support::success(&emitted);
     let rust = String::from_utf8(emitted.stdout).unwrap();
-    // Value-mode entry shape; unwind mode renames the entry (plan item 5.5).
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") { return; }
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
     assert_eq!(rust.matches("fn main()").count(), 1);
     let entry = rust.split("fn main()").nth(1).unwrap();
     let call = entry.split("tsr_entry_result(").nth(1).expect("fallible cleanup entry");

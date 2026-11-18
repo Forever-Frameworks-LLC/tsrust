@@ -72,9 +72,11 @@ unlisted one is a compile error. Async functions write
 (request handlers, input parsing, retries); elsewhere ordinary functions carry
 no error bookkeeping for faults, which keeps hot code as fast as plain Rust.
 
-Under the hood, faults either travel as values (`TSRUST_FAULT_MODE=value`,
-the default until the plan's rollout step) or unwind to the nearest catch
-point (`unwind`). Programs behave the same in both modes; only speed differs.
+Under the hood, faults unwind to the nearest catch point. `TSRUST_FAULT_MODE=value`
+selects value mode instead, where faults travel in each caller's `Result`; it is
+kept for targets without unwinding. Programs behave the same in both modes,
+except that value mode reports a fault in a program without `try` as a native
+panic (exit status 101).
 
 ## Original vision sections
 

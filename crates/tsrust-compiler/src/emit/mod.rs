@@ -10707,6 +10707,8 @@ mod exception_region_tests {
     }
     #[test]
     fn concrete_closure_calls_use_registered_result_contract() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value():int{const leaf=(n:int):int=>n/0;return leaf(64);}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let emitter=super::emitter_for(&program.program, "");
@@ -10723,6 +10725,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_closure_signature_executes_native_result() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value():int{const leaf=(n:int):int=>64/n;return 64;}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let mut emitter=super::emitter_for(&program.program, "");
@@ -10766,6 +10770,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_function_value_forwards_native_result() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function leaf(n:int):int{return 64/n;}function value():int{const saved=leaf;return 64;}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let emitter=super::emitter_for(&program.program, "");
@@ -10799,6 +10805,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_once_adapter_converts_direct_and_counted_errors() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value():void{const saved:Once<Function<int,[x:int]>>=(n:int):int=>64/n;}function main(){}").unwrap();
         let adapter=program.program.closures.iter().position(|closure|matches!(closure.forward,Some(crate::analysis::ClosureForward::Once(_)))).unwrap();
         let Some(crate::analysis::ClosureForward::Once(inner))=program.program.closures[adapter].forward else {unreachable!()};
@@ -10832,6 +10840,8 @@ mod exception_region_tests {
     }
     #[test]
     fn registered_stored_family_emits_native_result_dispatch() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function value(a:int,field:boolean):int{const actions:((n:int)=>int)[]=[(n:int):int=>64/n,(n:int):int=>n];if(field){return actions[0](a);}let selected=actions.remove(0);return selected(a);}function main(){}").unwrap();
         let caller_index=program.program.functions.iter().position(|function|function.name=="value").unwrap();
         let caller_contract=program.program.error_effects.function_errors[caller_index].clone();
@@ -10860,6 +10870,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_fixed_result_dispatch_preserves_specialized_borrowed_arrays() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function leaf(values:int[],n:int):int{return values[n];}function value(n:int):int{const values=[64];return leaf(values,n);}function bump(values:int[],n:int):int{values[n]+=1;return values[n];}function mutate(n:int):int{const values=[64];return bump(values,n);}type Box={value:int;children:Box[];};function boxed(box:Box,n:int):int{return box.children[n].value;}function records(n:int):int{const box:Box={value:0,children:[{value:64,children:[]}]};return boxed(box,n);}function text(values:string[],n:int):int{return values[n].length;}function strings(n:int):int{const values=[\"abcd\"];return text(values,n);}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
         let emitter=super::emitter_for(&checked.program, "");let mut declarations=String::new();
@@ -10881,6 +10893,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_registered_entry_returns_failure_without_native_panic() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function main(){const n=1/0;}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
         let emitter=super::emitter_for(&checked.program, "cleanup_witness(); pure_entry::verify();");let id=checked.program.functions.iter().position(|function|function.name=="main").unwrap();
@@ -10915,6 +10929,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_result_declarations_connect_entire_native_call_chain() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function leaf(n:int):int{return 64/n;}function stored(n:int):int{const actions:((x:int)=>int)[]=[(x:int):int=>64/x,(x:int):int=>x];return actions[0](n);}function main(){console.log(leaf(1));console.log(stored(1));console.log(stored(0));}").unwrap();
         crate::error_effects::materialize_runtime_record(&mut checked.program);
         let emitter=super::emitter_for(&checked.program, "");
@@ -10927,6 +10943,8 @@ mod exception_region_tests {
     }
     #[test]
     fn exception_abstract_callback_result_bounds_propagate_native_failures() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut checked=crate::check("function invoke(f:Function<int,[n:int]>,n:int):int{return f(n);}function conditional(f:Function<int,[n:int]>,n:int):int{return(n>0?f:f)(n);}function main(){console.log(invoke((n:int):int=>64/n,1));console.log(conditional((n:int):int=>64/n,2));console.log(invoke((n:int):int=>n,7));console.log(conditional((n:int):int=>64/n,0));}").unwrap();
         // Exercise the retained generic checked body alongside concrete instantiations.
         for generic in checked.program.functions.iter_mut().filter(|function|matches!(function.name.as_str(),"invoke" | "conditional") && function.template){
@@ -11100,6 +11118,8 @@ mod exception_region_tests {
     }
     #[test]
     fn declared_result_calls_propagate_native_callee_failures() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let mut program=crate::check("function mark(value:int):int{console.log(value);return value;}function leaf(a:int,b:int):int{if(a===1){return 1/0;}return b;}function value(a:int):int{return leaf(mark(a),mark(64));}function main(){}").unwrap();
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let emitter=super::emitter_for(&program.program,"");
@@ -11268,6 +11288,8 @@ mod exception_region_tests {
     }
     #[test]
     fn source_closure_error_layout_compiles_with_capture_lifetime() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let program=crate::check("function main(){const label=\"payload\";const saved=()=>label.length;const size=saved();}").unwrap();
         let emitter=super::emitter_for(&program.program,"");let function=program.program.functions.iter().find(|function|function.name=="main").unwrap();
         let (binding,saved)=function.bindings.iter().enumerate().find(|(_,binding)|binding.name=="saved").unwrap();

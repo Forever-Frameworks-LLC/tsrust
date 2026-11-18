@@ -78,12 +78,13 @@ impl OperationEffects {
 }
 
 /// Whether runtime faults unwind to catch points instead of travelling in each
-/// caller's Result (docs/plans/fault-unwinding.md). Off by default; selected with
-/// `TSRUST_FAULT_MODE=unwind`. The generated Rust differs, so native caches keyed
-/// by that text never mix the two modes.
+/// caller's Result (docs/plans/fault-unwinding.md). On by default;
+/// `TSRUST_FAULT_MODE=value` selects value mode, the fallback for targets
+/// without unwinding. The generated Rust differs, so native caches keyed by that
+/// text never mix the two modes.
 pub(crate) fn unwind_faults()->bool {
     static MODE:std::sync::OnceLock<bool>=std::sync::OnceLock::new();
-    *MODE.get_or_init(||std::env::var("TSRUST_FAULT_MODE").as_deref()==Ok("unwind"))
+    *MODE.get_or_init(||std::env::var("TSRUST_FAULT_MODE").as_deref()!=Ok("value"))
 }
 /// An injection target meaning "raise this runtime error as a fault": the
 /// destination no longer carries runtime errors in its Result.
@@ -1279,6 +1280,8 @@ mod tests {
     }
     #[test]
     fn native_error_injection_maps_broader_contract_by_payload_identity() {
+        // Value-mode fault ABI; runs with TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+        if crate::error_effects::unwind_faults() { return; }
         let unions=crate::unions::UnionArena::default();
         let span=crate::Span::new(7,13);
         let source=FailureSet{explicit:vec![Type::String],runtime:true,opaque:false};

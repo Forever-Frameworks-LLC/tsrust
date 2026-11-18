@@ -10,9 +10,9 @@ fn result_matches_preserve_returns_replacement_and_callback_failures() {
 
 #[test]
 fn result_payload_allocations_are_released_after_returns_replacement_and_failures() {
-    // Inspects value-mode fault ABI from Rust (panic text, Result entry); adapted
-    // when unwinding faults become the default (docs/plans/fault-unwinding.md, 5.5).
-    if std::env::var("TSRUST_FAULT_MODE").as_deref() == Ok("unwind") { return; }
+    // Value-mode emission and fault ABI; part of the value-mode suite run with
+    // TSRUST_FAULT_MODE=value (docs/plans/fault-unwinding.md, 4.2).
+    if std::env::var("TSRUST_FAULT_MODE").as_deref() != Ok("value") { return; }
 
     let directory = support::TempDirectory::new();
     let path = directory.source(&support::format_round_trip(include_str!("fixtures/result-match-cleanup/values.tsr")));
