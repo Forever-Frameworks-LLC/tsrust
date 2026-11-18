@@ -20,8 +20,8 @@ it. Releases also contain SHA256SUMS. For example, after downloading the matchin
 archive and checksum file from that official release:
 
 ```sh
-grep 'tsrust-v0.2.1-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
-  tar -xzf tsrust-v0.2.1-aarch64-apple-darwin.tar.gz
+grep 'tsrust-v0.3.0-aarch64-apple-darwin.tar.gz$' SHA256SUMS | shasum -a 256 --check &&
+  tar -xzf tsrust-v0.3.0-aarch64-apple-darwin.tar.gz
 ```
 
 Substitute the actual version and target. Linux uses `sha256sum --check`; Windows

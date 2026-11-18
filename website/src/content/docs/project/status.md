@@ -35,6 +35,15 @@ Find the APIs in the [standard-library overview](/tsrust/library/overview/) and
 [test runner and profiling guide](/tsrust/tools/testing/). Releases before v0.2.0
 do not include these APIs.
 
+## Fault unwinding and faster development builds
+
+In v0.3.0, runtime faults (overflow, bounds, assertions, length limits) unwind to
+the nearest `try`, `Checked` function or boundary instead of returning through
+every call, and uncaught faults report their file, line and column.
+`Checked<T, E>` functions return faults as values; `TSRUST_FAULT_MODE=value`
+keeps the previous behavior. Development builds use one Rust crate per source
+module. The release includes LSP 0.4.0 with shorter, behavior-focused hovers.
+
 ## Compiler and editor maintenance
 
 The v0.2.1 patch improves repeated compiler analysis, ownership-flow allocation,
