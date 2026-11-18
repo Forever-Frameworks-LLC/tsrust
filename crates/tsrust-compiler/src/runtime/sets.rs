@@ -4,6 +4,8 @@ trait TsrSetKey: Clone {
     fn tsr_hash(&self) -> u64;
     fn tsr_same(&self, other: &Self) -> bool;
     fn tsr_normalize(self) -> Self { self }
+    /// Bits that identify a scalar key exactly, so a remembered miss can be reused.
+    fn tsr_exact(&self) -> Option<u64> { None }
 }
 /// One keyed hash per key. The key is random per process, so crafted keys
 /// cannot predict collisions; Map and Set order comes from insertion, not hashes.
@@ -20,17 +22,36 @@ const TSR_INDEX_DELETED: usize = usize::MAX - 1;
 /// Open-addressing table from a key's hash to its slot index. Each entry keeps
 /// the full hash beside the index, so one linear probe finds a key and most
 /// mismatches never read the slot vector. Keys live only in the slots.
+///
+/// `recent` remembers the last lookup (hash, slot index or a miss, exact key bits),
+/// so `get` then `set`, or `has` then `add`, hashes the key once. A remembered slot
+/// is confirmed by comparing keys; a remembered miss needs exact scalar bits.
+/// Every insert and remove replaces it.
 #[derive(Clone, Default)]
 struct TsrSetBuckets {
     entries: Vec<(u64, usize)>,
     live: usize,
     used: usize,
+    recent: std::cell::Cell<TsrRecentLookup>,
 }
+#[derive(Clone, Copy)]
+struct TsrRecentLookup { hash: u64, index: usize, exact: Option<u64> }
+impl Default for TsrRecentLookup { fn default() -> Self { Self { hash: 0, index: TSR_INDEX_EMPTY, exact: None } } }
 impl TsrSetBuckets {
     fn is_empty(&self) -> bool { self.live == 0 }
     fn clear(&mut self) {
         for entry in &mut self.entries { entry.1 = TSR_INDEX_EMPTY; }
-        self.live = 0; self.used = 0;
+        self.live = 0; self.used = 0; self.recent.set(TsrRecentLookup::default());
+    }
+    /// `find` that reuses the previous lookup's hash when it was for the same key.
+    fn find_recent(&self, hash: impl FnOnce() -> u64, exact: Option<u64>, mut same: impl FnMut(usize) -> bool) -> (Option<usize>, u64) {
+        let recent = self.recent.get();
+        if recent.index < TSR_INDEX_DELETED && same(recent.index) { return (Some(recent.index), recent.hash); }
+        if recent.index == TSR_INDEX_EMPTY && exact.is_some() && recent.exact == exact { return (None, recent.hash); }
+        let hash = hash();
+        let found = self.find(hash, same);
+        self.recent.set(TsrRecentLookup { hash, index: found.unwrap_or(TSR_INDEX_EMPTY), exact: if found.is_some() { None } else { exact } });
+        (found, hash)
     }
     /// Room for `additional` more indices without rebuilding (7/8 load).
     fn reserve(&mut self, additional: usize) {
@@ -82,8 +103,10 @@ impl TsrSetBuckets {
         while self.entries[position].1 < TSR_INDEX_DELETED { position = (position + 1) & mask; }
         if self.entries[position].1 == TSR_INDEX_EMPTY { self.used += 1; }
         self.entries[position] = (hash, index); self.live += 1;
+        self.recent.set(TsrRecentLookup { hash, index, exact: None });
     }
     fn remove(&mut self, hash: u64, index: usize) {
+        self.recent.set(TsrRecentLookup::default());
         if self.entries.is_empty() { return; }
         let mask = self.entries.len() - 1;
         let mut position = hash as usize & mask;
@@ -107,27 +130,33 @@ fn tsr_set_number_same(left: f64, right: f64) -> bool { left == right || left.is
 trait TsrSetQuery<K: TsrSetKey> {
     fn tsr_query_hash(&self) -> u64;
     fn tsr_query_same(&self, stored: &K) -> bool;
+    fn tsr_query_exact(&self) -> Option<u64> { None }
 }
 impl<K: TsrSetKey> TsrSetQuery<K> for K {
     fn tsr_query_hash(&self) -> u64 { self.tsr_hash() }
     fn tsr_query_same(&self, stored: &K) -> bool { self.tsr_same(stored) }
+    fn tsr_query_exact(&self) -> Option<u64> { self.tsr_exact() }
 }
 impl<K: TsrSetKey> TsrSetQuery<K> for &K {
     fn tsr_query_hash(&self) -> u64 { (*self).tsr_hash() }
     fn tsr_query_same(&self, stored: &K) -> bool { (*self).tsr_same(stored) }
+    fn tsr_query_exact(&self) -> Option<u64> { (*self).tsr_exact() }
 }
 impl TsrSetKey for i64 {
     fn tsr_hash(&self) -> u64 { tsr_set_number_hash(*self as f64) }
     fn tsr_same(&self, other: &Self) -> bool { self == other }
+    fn tsr_exact(&self) -> Option<u64> { Some(*self as u64) }
 }
 impl TsrSetKey for f64 {
     fn tsr_hash(&self) -> u64 { tsr_set_number_hash(*self) }
     fn tsr_same(&self, other: &Self) -> bool { tsr_set_number_same(*self,*other) }
     fn tsr_normalize(self) -> Self { if self == 0.0 { 0.0 } else { self } }
+    fn tsr_exact(&self) -> Option<u64> { Some(if self.is_nan() { 0x7ff8000000000000 } else if *self == 0.0 { 0 } else { self.to_bits() }) }
 }
 impl TsrSetKey for bool {
     fn tsr_hash(&self) -> u64 { tsr_set_hash(1,*self) }
     fn tsr_same(&self, other: &Self) -> bool { self == other }
+    fn tsr_exact(&self) -> Option<u64> { Some(u64::from(*self)) }
 }
 impl TsrSetKey for String {
     fn tsr_hash(&self) -> u64 { let value: &str = self.as_ref(); tsr_set_hash(2,value) }
@@ -161,8 +190,8 @@ impl<T: TsrSetKey> TsrSet<T> {
             if self.slots.iter().any(|stored| stored.as_ref().is_some_and(|stored| stored.tsr_same(&value))) { return; }
             None
         } else {
-            let hash=value.tsr_hash();
-            if self.buckets.find(hash, |index| self.slots[index].as_ref().is_some_and(|stored| stored.tsr_same(&value))).is_some() { return; }
+            let (found, hash)=self.buckets.find_recent(|| value.tsr_hash(), value.tsr_exact(), |index| self.slots[index].as_ref().is_some_and(|stored| stored.tsr_same(&value)));
+            if found.is_some() { return; }
             Some(hash)
         };
         let index=self.slots.len();
@@ -178,8 +207,8 @@ impl<T: TsrSetKey> TsrSet<T> {
     }
     fn query_location<Q: TsrSetQuery<T>>(&self, query: &Q) -> Option<(usize, u64)> {
         if self.small() { return self.slots.iter().position(|stored| stored.as_ref().is_some_and(|stored| query.tsr_query_same(stored))).map(|index| (index, 0)); }
-        let hash=query.tsr_query_hash();
-        self.buckets.find(hash, |index| self.slots[index].as_ref().is_some_and(|stored| query.tsr_query_same(stored))).map(|index| (index, hash))
+        let (found, hash)=self.buckets.find_recent(|| query.tsr_query_hash(), query.tsr_query_exact(), |index| self.slots[index].as_ref().is_some_and(|stored| query.tsr_query_same(stored)));
+        found.map(|index| (index, hash))
     }
     /// Candidate slots for `value`: every slot of a small set, else those stored under its hash.
     /// A small set has no indexed entries, so only one of the two parts yields.

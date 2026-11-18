@@ -80,8 +80,8 @@ impl<K:TsrSetKey,V,P:TsrMapEntry<K,V>,F:TsrMapFirstSlot<P>> TsrMap<K,V,P,F> {
     fn locate<Q:TsrSetQuery<K>>(&self,query:&Q)->(Option<usize>,Option<u64>){
         if let Some(entry)=self.first.as_ref(){return (query.tsr_query_same(entry.key()).then_some(0),None);}
         if self.slots.len()<=TSR_SMALL_SLOTS{return (self.slots.iter().position(|entry|entry.as_ref().is_some_and(|entry|query.tsr_query_same(entry.key()))),None);}
-        let hash=query.tsr_query_hash();
-        (self.buckets.find(hash,|index|self.slots[index].as_ref().is_some_and(|entry|query.tsr_query_same(entry.key()))),Some(hash))
+        let (found,hash)=self.buckets.find_recent(||query.tsr_query_hash(),query.tsr_query_exact(),|index|self.slots[index].as_ref().is_some_and(|entry|query.tsr_query_same(entry.key())));
+        (found,Some(hash))
     }
     fn set(&mut self,key:K,value:V){
         let key=key.tsr_normalize();
@@ -185,8 +185,8 @@ impl<K:TsrSetKey,V,P:TsrMapEntry<K,V>> TsrMap<K,V,P> {
     /// The slot holding `query`, and its hash when the map is indexed (computed once per operation).
     fn locate<Q:TsrSetQuery<K>>(&self,query:&Q)->(Option<usize>,Option<u64>){
         if self.slots.len()<=TSR_SMALL_SLOTS{return (self.slots.iter().position(|entry|entry.as_ref().is_some_and(|entry|query.tsr_query_same(entry.key()))),None);}
-        let hash=query.tsr_query_hash();
-        (self.buckets.find(hash,|index|self.slots[index].as_ref().is_some_and(|entry|query.tsr_query_same(entry.key()))),Some(hash))
+        let (found,hash)=self.buckets.find_recent(||query.tsr_query_hash(),query.tsr_query_exact(),|index|self.slots[index].as_ref().is_some_and(|entry|query.tsr_query_same(entry.key())));
+        (found,Some(hash))
     }
     fn set(&mut self,key:K,value:V){
         let key=key.tsr_normalize();
