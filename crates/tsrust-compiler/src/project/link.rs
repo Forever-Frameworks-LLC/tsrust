@@ -61,7 +61,9 @@ impl ProjectAnalysis {
         self.emit_rust_with_locations(None)
     }
     pub(crate) fn emit_rust_with_locations(&self, debug_source: Option<(&str, &str)>) -> (String, Vec<&'static str>) {
-        let setup = crate::project_runtime::setup(&self.segments);
+        // Unwinding faults report their own file and position; the panic hook
+        // that maps whole-program offsets to files serves value mode only.
+        let setup = if crate::error_effects::unwind_faults() { String::new() } else { crate::project_runtime::setup(&self.segments) };
         let (mut rust, features) = crate::emit::emit_with_source_segments(
             &self.analysis.program,
             &setup,

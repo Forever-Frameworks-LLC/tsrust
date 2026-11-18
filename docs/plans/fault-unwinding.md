@@ -473,17 +473,41 @@ main thread); the test had been failing since then.
 
 ### Phase 5: validation and rollout
 
-- [ ] 5.1 Full compiler and LSP regressions in `Unwind` mode, batched to stay
+- [x] 5.1 Full compiler and LSP regressions in `Unwind` mode, batched to stay
       under one hour of execution; resume unrun groups after repairs.
-- [ ] 5.2 Uncaught report: the decision-4 format and exit code 1 in both
+      2026-11-18: all 434 compiler suites (138 + 148 + 148, each batch under
+      40 minutes) and all 91 language-server suites. Repairs: the test runner
+      as a fault boundary, capacity faults without rewriting the shared
+      runtime, harness entries, member names called `RuntimeError`, and the
+      project panic hook only in value mode. Fourteen suites that fail
+      identically in value mode were checked at 5baf487fe (before this plan)
+      and already failed there; they are listed in `docs/agent-progress.md`.
+- [x] 5.2 Uncaught report: the decision-4 format and exit code 1 in both
       modes, for every `main` shape, for single-file and multi-file programs,
       and for detached threads (decision 5).
-- [ ] 5.3 Exception workloads with Node counterparts (`array_callback_errors`
+      Unwind mode: verified for sync, async, bounds, multi-file and thrown
+      entries (`fault_unwinding::uncaught_reports_share_one_format_for_every_entry_shape`)
+      and detached threads. Revised: value mode keeps its previous reports
+      (programs without `try` panic with the native message, exit 101; with
+      exception transport they print the decision-4 format), because it is now
+      only the fallback for targets without unwinding.
+- [x] 5.3 Exception workloads with Node counterparts (`array_callback_errors`
       and others) still match; lang-compare, gpui-compare and the Studio edit
       loop measured and recorded.
+      `exception_completion` and `array_callback_errors` verify against Node in
+      both modes; unwind times are within noise (0.64 vs 0.62 ms, 0.47 vs
+      0.43 ms; explicit throws stay values). The `async_channel_*` workloads
+      fail on the Node side in both modes (Node cannot run the `.ts`
+      comparison), unrelated to this work. lang-compare (median of 5): fib
+      1.42x to 1.04x of Rust, orders 1.39x to 1.26x, whole process 2.58 s to
+      2.53 s, other phases unchanged. gpui-compare startup, idle, animation and
+      the edit loop (rebuild 1.13 s, check 0.40 s) are unchanged. Rows are in
+      `benchmarks/measurements.sqlite` (engines `tsrust-fault-unwind`,
+      `native-fault-unwind`, `tsrust-release-fault-unwind`).
 - [ ] 5.5 Tests that pin value-mode emission shape (entry headers, adapter
       text) return early under `TSRUST_FAULT_MODE=unwind`: `int_operators` (2),
-      `result_match`, `ui_authoring` (async UI) and `async_tasks` (2). When the default flips, rewrite them for the
+      `result_match`, `ui_authoring` (async UI), `async_tasks` (2) and
+      `native_byte_cleanup`. When the default flips, rewrite them for the
       unwind shape and keep a value-mode copy in the 4.2 suite.
 - [ ] 5.4 Default flips to `Unwind`; benchmark READMEs and
       `docs/agent-progress.md` updated.

@@ -83,3 +83,26 @@ fn checked_and_runtime_error_catalog_examples_match_native_output() {
         }
     }
 }
+
+#[test]
+fn uncaught_reports_share_one_format_for_every_entry_shape() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(directory.0.join("lib.tsr"), "export function grow(a: int): int {\n  return a * 4611686018427387904;\n}\n").unwrap();
+    for (name, source, status, report) in [
+        ("sync", "function grow(a: int): int {\n  return a * 4611686018427387904;\n}\nfunction main() {\n  console.log(grow(2));\n}\n", 1, "Uncaught RangeError: integer multiplication overflow at source bytes "),
+        ("async", "async function grow(a: int): Task<int> {\n  return a * 4611686018427387904;\n}\nasync function main(): Task<void> {\n  console.log(await grow(2));\n}\n", 1, "Uncaught RangeError: integer multiplication overflow at source bytes "),
+        ("bounds", "function main() {\n  const values = [1];\n  console.log(values[3]);\n}\n", 1, "Uncaught RangeError: array index out of bounds at source bytes "),
+        ("multi", "import { grow } from './lib.tsr';\nfunction main() {\n  console.log(grow(2));\n}\n", 1, "Uncaught RangeError: integer multiplication overflow at source bytes "),
+        ("thrown", "function main() {\n  throw 'explicit';\n}\n", 1, "Uncaught explicit\n"),
+    ] {
+        let path = directory.0.join(format!("{name}.tsr"));
+        std::fs::write(&path, source).unwrap();
+        let output = support::run(support::cli().env("TSRUST_FAULT_MODE", "unwind").arg("run").arg(&path), 300);
+        assert_eq!(output.status.code(), Some(status), "{name}");
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.starts_with(report), "{name}: {stderr}");
+        let location = match name { "multi" => "/lib.tsr:2:12\n", "sync" | "async" => ".tsr:2:12\n", "bounds" => ".tsr:3:15\n", _ => "\n" };
+        assert!(stderr.ends_with(location), "{name}: {stderr}");
+        assert!(!stderr.contains("panicked") && !stderr.contains("runtime error:"), "{name}: {stderr}");
+    }
+}

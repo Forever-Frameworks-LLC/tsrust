@@ -456,7 +456,8 @@ fn cli_dependency_compile_and_runtime_errors_identify_original_source() {
         let error = support::run(&mut command, 60);
         assert!(!error.status.success());
         let message = String::from_utf8(error.stderr).unwrap();
-        assert!(message.contains("runtime error:"), "{message}");
+        // Value mode maps the panic through the source table; unwinding faults report themselves.
+        assert!(message.contains("runtime error:") || message.starts_with("Uncaught RangeError:"), "{message}");
         assert!(message.contains("dependency.tsr"), "{message}");
         let start = source.find("values[5]").unwrap();
         assert!(

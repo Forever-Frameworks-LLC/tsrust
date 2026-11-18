@@ -1,0 +1,69 @@
+[dev] Watching /Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/gpui-compare/tsrust. Press Ctrl+C to stop.
+[dev] Checking src/main.tsrx…
+[build] syntax reused=0 parsed=0 headers reused=0 parsed=0
+[build] runtime-prepare=154.1ms
+[build] dependency-workspace=/Users/seancotter/Desktop/dev/learning/tsrust/benchmarks/gpui-compare/tsrust/target/tsrust-native
+[dev] Preparing native runtime (offline; runtime cache miss).
+[build] runtime-build+publish=1852.6ms
+[build] runtime=miss
+[dev] Compiling and linking the application…
+[build] rustc=2604.2ms split crates=6 rebuilt=2 types=19.3ms modules=1948.9ms program=621.5ms
+[dev] Reusing an earlier check of these sources.
+[build] check=31.4ms emit=0.0ms backend=32.1ms cache=miss (0.1ms) native+link=4631.7ms
+[dev] Built in 4704 ms
+[dev] Started program (pid 81294).
+[dev] Checking src/main.tsrx…
+[build] syntax reused=0 parsed=4 headers reused=4 parsed=0
+[build] runtime-prepare=1947.6ms
+[build] runtime=hit
+[dev] Compiling and linking the application…
+[build] rustc=4239.7ms split crates=6 rebuilt=6 types=2796.4ms modules=936.1ms program=480.5ms
+[build] check=416.1ms emit=62.2ms backend=481.8ms cache=miss (0.1ms) native+link=6211.3ms
+[dev] Rebuilt in 6726 ms
+[dev] Started program (pid 81328).
+[dev] Checking src/main.tsrx…
+[build] syntax reused=2 parsed=2 headers reused=4 parsed=0
+[build] runtime-prepare=71.5ms
+[build] runtime=hit
+[dev] Compiling and linking the application…
+[build] rustc=555.1ms split crates=6 rebuilt=2 types=5.2ms modules=133.3ms program=416.4ms
+[build] check=380.6ms emit=61.7ms backend=446.1ms cache=miss (0.1ms) native+link=650.2ms
+[dev] Rebuilt in 1129 ms
+[dev] Started program (pid 81354).
+[dev] Checking src/main.tsrx…
+[build] syntax reused=2 parsed=2 headers reused=4 parsed=0
+[build] runtime-prepare=70.2ms
+[build] runtime=hit
+[dev] Compiling and linking the application…
+[build] rustc=557.6ms split crates=6 rebuilt=2 types=4.8ms modules=118.0ms program=413.3ms
+[build] check=376.5ms emit=66.5ms backend=446.2ms cache=miss (0.1ms) native+link=649.8ms
+[dev] Rebuilt in 1128 ms
+[dev] Started program (pid 81379).
+[dev] Checking src/main.tsrx…
+[build] syntax reused=2 parsed=2 headers reused=4 parsed=0
+[build] runtime-prepare=70.4ms
+[build] runtime=hit
+[dev] Compiling and linking the application…
+[build] rustc=724.2ms split crates=6 rebuilt=2 types=5.1ms modules=116.3ms program=579.3ms
+[build] check=383.0ms emit=60.9ms backend=447.6ms cache=miss (0.1ms) native+link=819.9ms
+[dev] Rebuilt in 1299 ms
+[dev] Started program (pid 81403).
+[dev] Checking src/main.tsrx…
+[build] syntax reused=2 parsed=2 headers reused=4 parsed=0
+[build] runtime-prepare=70.3ms
+[build] runtime=hit
+[dev] Compiling and linking the application…
+[build] rustc=560.7ms split crates=6 rebuilt=2 types=3.9ms modules=138.5ms program=414.9ms
+[build] check=378.1ms emit=59.8ms backend=441.4ms cache=miss (0.1ms) native+link=653.3ms
+[dev] Rebuilt in 1127 ms
+[dev] Started program (pid 81427).
+[dev] Checking src/main.tsrx…
+[build] syntax reused=2 parsed=2 headers reused=4 parsed=0
+[build] runtime-prepare=69.9ms
+[build] runtime=hit
+[dev] Compiling and linking the application…
+[build] rustc=555.2ms split crates=6 rebuilt=2 types=4.2ms modules=117.3ms program=403.8ms
+[build] check=373.7ms emit=62.0ms backend=439.0ms cache=miss (0.1ms) native+link=647.2ms
+[dev] Rebuilt in 1118 ms
+[dev] Started program (pid 81451).
+[dev] Stopped.
